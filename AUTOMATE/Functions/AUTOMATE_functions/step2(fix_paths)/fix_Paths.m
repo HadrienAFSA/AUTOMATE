@@ -40,8 +40,9 @@ function [final_fixed_Paths] = fix_Paths(Paths, Grid,max_reso_leg, max_reso_tot)
 
         seq_fixed=[seq(1,:)];
         
-        % Stores all the resonances used
-        list_reso_used=[];     
+        % Stores all the resonances and alpha used
+        list_reso_used=[]; 
+        list_alpha_used=[];
         shift_reso=0;
         
         % Stores the total number of resonances used
@@ -75,21 +76,23 @@ function [final_fixed_Paths] = fix_Paths(Paths, Grid,max_reso_leg, max_reso_tot)
                 disp("Error#2");
             end
 
-
+            % Checks if single flyby can be achieved (no resonance needed)
             if check_singleFlyby(alpha_i, alpha_f, seq(j,1), seq(j,2))
                 % Single flyby can be achieved
                 %disp("Single flyby possible.");
                 seq_fixed=[seq_fixed; seq(j,:)];
             else
-                %disp('no single flyby');
+                % Try to find resonance            
                 if total_num_reso < max_reso_tot
-                    %try to find resonance                
                     if max_reso_leg==0
                         impossible_sequence=true;
                         break
                     else
                         %disp('###############');
-                        [n_reso, ~, reso_used]=check_Resonances(alpha_i, alpha_f, seq(j,1), seq(j,2),max_reso_leg);
+                        % Find resonances available: how many are used,
+                        % what are the alpha used, and what ratio are the
+                        % resonances (n:m)
+                        [n_reso, alpha_list, reso_used]=check_Resonances(alpha_i, alpha_f, seq(j,1), seq(j,2),max_reso_leg);
 
                         if n_reso==0
                             % No possible path
@@ -97,8 +100,17 @@ function [final_fixed_Paths] = fix_Paths(Paths, Grid,max_reso_leg, max_reso_tot)
                             impossible_sequence=true;
                             break
                         else
-                            list_reso_used=[list_reso_used; [reso_used, shift_reso+j]];
-                            shift_reso=shift_reso+1;
+                            % Adds the resonances used in a matrix to be
+                            % stored
+                            tmp_reso_matrix=[];
+                            for r=1:size(reso_used,1)
+                                tmp_reso_matrix=[tmp_reso_matrix; [reso_used(r,:) j+shift_reso]];
+                                shift_reso=shift_reso+1;
+                            end
+                            list_reso_used=[list_reso_used; tmp_reso_matrix];
+                            list_alpha_used=[list_alpha_used; [alpha_list]]; 
+                            
+                            % Adds the resonance flybys in the sequence
                             for reso=1:n_reso+1
                                 seq_fixed=[seq_fixed; seq(j,:)];
                             end
@@ -116,11 +128,16 @@ function [final_fixed_Paths] = fix_Paths(Paths, Grid,max_reso_leg, max_reso_tot)
             end
 
         end
+
+        % Sequence including all the resonances
         seq_fixed=[seq_fixed; seq(end,:)];
+
+        % Saves the sequences and its parameters
         if not(impossible_sequence)
             %seq_fixed
             Paths_fixed{idx_path,1}=seq_fixed;
             Paths_fixed{idx_path,2}=list_reso_used;
+            Paths_fixed{idx_path,3}=list_alpha_used;
             
             idx_path=idx_path+1;
             
