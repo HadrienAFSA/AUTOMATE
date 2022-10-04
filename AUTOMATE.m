@@ -1,5 +1,6 @@
 %% Initialisation
 clear;close all;clc;
+addpath(genpath('Functions'))
 
 total_time=tic;
 
